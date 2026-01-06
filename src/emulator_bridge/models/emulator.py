@@ -1,10 +1,9 @@
 from datetime import datetime, timedelta
 
-from emulator_bridge.utils import now
-
 from pydantic import BaseModel, Field
-from typing import Literal
 
+from emulator_bridge.controllers.lease import LEASE_STATUS
+from emulator_bridge.utils import now
 
 DEFAULT_LEASE_DURATION = 180  # 3 minutes
 DEV_MODE_DURATIION = timedelta(days=1)  # 1 day
@@ -16,7 +15,7 @@ class LeaseInfo(BaseModel):
     start_at: datetime | None = None
     end_at: datetime | None = None
     duration: timedelta
-    status: Literal["queued", "active", "expired", "completed"]
+    status: LEASE_STATUS
 
     model_config = {
         "json_schema_extra": {

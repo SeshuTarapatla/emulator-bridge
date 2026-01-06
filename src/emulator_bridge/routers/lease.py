@@ -7,7 +7,6 @@ from emulator_bridge.controllers.emulator import Emulator
 from emulator_bridge.controllers.lease import (
     EMULATOR_SWITCH,
     Lease,
-    LeaseQueue,
     lease_queue,
 )
 from emulator_bridge.models.emulator import DEV_MODE_DURATIION, LeaseInfo, LeaseRequest
@@ -50,8 +49,7 @@ async def list_lease_queue():
 
 @router.delete("/lease", status_code=200)
 async def clear_lease_queue(bg: BackgroundTasks):
-    global lease_queue
-    lease_queue = LeaseQueue()
+    await lease_queue.clear()
     bg.add_task(asyncio.run, Emulator.stop()) if EMULATOR_SWITCH else None
     return Response(status_code=200)
 
@@ -75,7 +73,7 @@ async def emulator_in_dev_mode():
     return lease_info_response(lease)
 
 
-@router.get("/lease/{id}", status_code=200, response_model=LeaseInfo)
+@router.get("/{id}", status_code=200, response_model=LeaseInfo)
 async def lease_info(id: str = Path(pattern=r"^lease-[0-9a-z]{8}")):
     lease = await lease_queue.query(id)
     if lease:
@@ -83,16 +81,16 @@ async def lease_info(id: str = Path(pattern=r"^lease-[0-9a-z]{8}")):
     raise HTTPException(status_code=404, detail=f"{id} not found")
 
 
-@router.post("/lease/{id}/complete", status_code=200, response_model=LeaseInfo)
+@router.post("/{id}/complete", status_code=200, response_model=LeaseInfo)
 async def complete_lease(id: str = Path(pattern=r"^lease-[0-9a-z]{8}")):
     lease = await lease_queue.query(id)
     if lease:
-        await lease.complete()
+        lease.complete()
         return lease_info_response(lease, include_dates=True)
     raise HTTPException(status_code=404, detail=f"{id} not found")
 
 
-@router.post("/lease/{id}/ping", status_code=200, response_model=LeaseInfo)
+@router.post("/{id}/ping", status_code=200, response_model=LeaseInfo)
 async def keep_lease_alive(
     id: str = Path(pattern=r"^lease-[0-9a-z]{8}"),
 ):
@@ -104,7 +102,7 @@ async def keep_lease_alive(
     raise HTTPException(status_code=404, detail=f"{id} not found")
 
 
-@router.get("/lease/{id}/status", status_code=200)
+@router.get("/{id}/status", status_code=200)
 async def lease_live_status(
     request: Request, id: str = Path(pattern=r"^lease-[0-9a-z]{8}")
 ):

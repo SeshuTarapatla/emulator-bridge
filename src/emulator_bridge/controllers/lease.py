@@ -11,7 +11,7 @@ from emulator_bridge.utils import log, now
 __all__ = ["lease_queue"]
 
 EMULATOR_SWITCH: bool = True
-
+LEASE_STATUS = Literal["queued", "active", "expired", "completed", "deleted"]
 
 @dataclass
 class Lease:
@@ -20,7 +20,7 @@ class Lease:
     start_at: datetime
     end_at: datetime
     duration: timedelta
-    status: Literal["queued", "active", "expired", "completed"]
+    status: LEASE_STATUS
 
     def __init__(self, duration: int, position: int):
         self.id = f"lease-{token_hex(8)[:8]}"
@@ -36,20 +36,26 @@ class Lease:
         self.status = "active"
         log.info(f"{self.id} | Lease Active   | Ends at: {self.end_at}")
 
-    async def _stop(self):
+    def _stop(self):
         self.end_at = now()
         self.duration = self.end_at - self.start_at
         self.position = -1
 
-    async def complete(self):
-        await self._stop()
+    def complete(self):
+        self._stop()
         self.status = "completed"
         log.info(f"{self.id} | Lease Complete | Total Duration: {self.duration}")
 
-    async def expire(self):
-        await self._stop()
+    def expire(self):
+        self._stop()
         self.status = "expired"
         log.info(f"{self.id} | Lease Expired  | Total Duration: {self.duration}")
+
+    def delete(self):
+        self.start_at = now()
+        self._stop()
+        self.status = "deleted"
+        log.info(f"{self.id} | Lease Deleted | Total Duration: {self.duration}")
 
 
 class LeaseQueue(deque[Lease]):
@@ -62,7 +68,9 @@ class LeaseQueue(deque[Lease]):
         async with self.lock:
             lease = Lease(duration, len(self))
             self.append(lease)
-            log.info(f"{lease.id} | Lease Added    | Position: {lease.position} | Duration: {lease.duration}")
+            log.info(
+                f"{lease.id} | Lease Added    | Position: {lease.position} | Duration: {lease.duration}"
+            )
             return lease
 
     async def next(self):
@@ -79,6 +87,12 @@ class LeaseQueue(deque[Lease]):
                 return entry
         if id in self.entries:
             return self.entries[id]
+
+    async def clear(self) -> None:  # type: ignore
+        async with self.lock:
+            for lease in self:
+                lease.delete()
+            return super().clear()
 
     @property
     async def current(self) -> Lease | None:
@@ -98,7 +112,7 @@ async def lease_manager():
                 lease.start()
             if now() >= lease.end_at:
                 if lease.status != "completed":
-                    await lease.expire()
+                    lease.expire()
                 await lease_queue.next()
                 log.info(f"{lease.id} | Stopping Emulator")
                 await Emulator.stop() if EMULATOR_SWITCH else None

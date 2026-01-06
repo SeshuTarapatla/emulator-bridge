@@ -2,10 +2,10 @@ import uvicorn
 from fastapi import FastAPI
 
 from emulator_bridge.controllers.lifespan import lifespan
-from emulator_bridge.routers import docs, emulator, health
+from emulator_bridge.routers import docs, health, lease
 
 app = FastAPI(lifespan=lifespan)
-app.include_router(emulator.router)
+app.include_router(lease.router)
 app.include_router(health.router)
 app.include_router(docs.router)
 
