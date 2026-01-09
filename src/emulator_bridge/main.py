@@ -11,7 +11,7 @@ app.include_router(docs.router)
 
 
 def main() -> None:
-    uvicorn.run("emulator_bridge.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
 
 
 if __name__ == "__main__":
