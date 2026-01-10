@@ -3,7 +3,7 @@ from shutil import which
 from subprocess import DEVNULL, Popen
 from typing import Literal
 
-from adbutils import AdbDevice, adb
+from adbutils import AdbDevice, AdbError, adb
 from pygetwindow import Win32Window, getWindowsWithTitle
 
 from emulator_bridge.utils import log
@@ -52,17 +52,20 @@ class Emulator:
         Literal[None, "offline", "booting", "device"], Literal[None, "active"]
     ]:
         emu, ui = None, None
-        for entry in adb.list():
-            if entry.serial.startswith("emulator-"):
-                if entry.state == "offline":
-                    emu = "offline"
-                else:
-                    device = AdbDevice(adb, entry.serial)
-                    emu = (
-                        "device"
-                        if device.getprop("sys.boot_completed").strip() == "1"
-                        else "booting"
-                    )
+        try:
+            for entry in adb.list():
+                if entry.serial.startswith("emulator-"):
+                    if entry.state == "offline":
+                        emu = "offline"
+                    else:
+                        device = AdbDevice(adb, entry.serial)
+                        emu = (
+                            "device"
+                            if device.getprop("sys.boot_completed").strip() == "1"
+                            else "booting"
+                        )
+        except AdbError:
+            pass
         if Emulator.window():
             ui = "active"
         return emu, ui
