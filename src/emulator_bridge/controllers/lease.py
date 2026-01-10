@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from secrets import token_hex
 from typing import Literal
 
+from icecream import ic
+
 from emulator_bridge.controllers.emulator import Emulator
 from emulator_bridge.utils import log, now
 
@@ -12,6 +14,7 @@ __all__ = ["lease_queue"]
 
 EMULATOR_SWITCH: bool = True
 LEASE_STATUS = Literal["queued", "active", "expired", "completed", "deleted"]
+
 
 @dataclass
 class Lease:
@@ -63,6 +66,7 @@ class LeaseQueue(deque[Lease]):
         super().__init__()
         self.lock = asyncio.Lock()
         self.entries: dict[str, Lease] = {}
+        self.pid: int = 0
 
     async def new(self, duration: int) -> Lease:
         async with self.lock:
@@ -105,15 +109,23 @@ lease_queue = LeaseQueue()
 
 async def lease_manager():
     while True:
+        ic(lease_queue)
         if lease := await lease_queue.current:
             if lease.status == "queued":
                 log.info(f"{lease.id} | Starting Emulator")
-                await Emulator.start() if EMULATOR_SWITCH else None
+                if EMULATOR_SWITCH:
+                    lease_queue.pid = Emulator.start()
+                while Emulator.status() != ("device", "active"):
+                    ic(lease)
+                    if lease.status in ("completed", "deleted"):
+                        break
+                    await asyncio.sleep(1)
+                Emulator.adjust_window()
                 lease.start()
             if now() >= lease.end_at:
                 if lease.status != "completed":
                     lease.expire()
                 await lease_queue.next()
                 log.info(f"{lease.id} | Stopping Emulator")
-                await Emulator.stop() if EMULATOR_SWITCH else None
+                await Emulator.stop(lease_queue.pid) if EMULATOR_SWITCH else None
         await asyncio.sleep(1)

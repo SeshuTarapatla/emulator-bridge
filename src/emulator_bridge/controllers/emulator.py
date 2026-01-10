@@ -4,6 +4,7 @@ from subprocess import DEVNULL, Popen
 from typing import Literal
 
 from adbutils import AdbDevice, AdbError, adb
+from psutil import NoSuchProcess, Process
 from pygetwindow import Win32Window, getWindowsWithTitle
 
 from emulator_bridge.utils import log
@@ -16,36 +17,25 @@ class Emulator:
     exe = which("emulator.exe")
 
     @staticmethod
-    async def start():
-        if Emulator.status() == (None, None):
-            Popen(
-                f"{Emulator.exe} -avd emulator -no-boot-anim -no-audio -gpu host -accel on -memory 4096 -cores 4 -netfast".split(),
-                stdout=DEVNULL,
-                stderr=DEVNULL,
-            )
-        while Emulator.status()[1] != "active":
-            await asyncio.sleep(1)
-        if win := Emulator.window():
-            win.moveTo(-5, 0)
-        while Emulator.status() != ("device", "active"):
-            await asyncio.sleep(2)
+    def start() -> int:
+        return Popen(
+            f"{Emulator.exe} -avd emulator -no-boot-anim -no-audio -gpu host -accel on -memory 4096 -cores 4 -netfast".split(),
+            stdout=DEVNULL,
+            stderr=DEVNULL,
+        ).pid
 
     @staticmethod
-    async def stop():
-        emu, ui = Emulator.status()
-        if emu == "device":
-            for device in adb.device_list():
-                if str(device.serial).startswith("emulator-"):
-                    device.shell("reboot -p")
-                else:
-                    exc = EmulatorNotFound(
-                        "Emulator is not found in adb devices to stop."
-                    )
-                    log.error(exc)
-        elif ui == "active" and (win := Emulator.window()):
-            win.close()
-        while Emulator.status() != (None, None):
+    async def stop(pid: int):
+        try:
+            if pid == 0:
+                return
+            parent = Process(pid)
+            for child in parent.children(recursive=True):
+                child.kill()
+            parent.kill()
             await asyncio.sleep(2)
+        except NoSuchProcess:
+            return
 
     @staticmethod
     def status() -> tuple[
@@ -74,3 +64,10 @@ class Emulator:
     def window() -> Win32Window | None:
         if _win := getWindowsWithTitle("Android Emulator - emulator:"):
             return _win[0]
+
+    @staticmethod
+    def adjust_window(x: int = -5, y: int = 0) -> bool:
+        if win := Emulator.window():
+            win.moveTo(x, y)
+            return True
+        return False

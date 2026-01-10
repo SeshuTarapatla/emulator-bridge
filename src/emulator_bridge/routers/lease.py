@@ -50,7 +50,9 @@ async def list_lease_queue():
 @router.delete("/lease", status_code=200)
 async def clear_lease_queue(bg: BackgroundTasks):
     await lease_queue.clear()
-    bg.add_task(asyncio.run, Emulator.stop()) if EMULATOR_SWITCH else None
+    bg.add_task(
+        asyncio.run, Emulator.stop(lease_queue.pid)
+    ) if EMULATOR_SWITCH else None
     return Response(status_code=200)
 
 
