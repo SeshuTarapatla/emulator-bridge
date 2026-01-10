@@ -5,8 +5,6 @@ from datetime import datetime, timedelta
 from secrets import token_hex
 from typing import Literal
 
-from icecream import ic
-
 from emulator_bridge.controllers.emulator import Emulator
 from emulator_bridge.utils import log, now
 
@@ -109,14 +107,12 @@ lease_queue = LeaseQueue()
 
 async def lease_manager():
     while True:
-        ic(lease_queue)
         if lease := await lease_queue.current:
             if lease.status == "queued":
                 log.info(f"{lease.id} | Starting Emulator")
                 if EMULATOR_SWITCH:
                     lease_queue.pid = Emulator.start()
                 while Emulator.status() != ("device", "active"):
-                    ic(lease)
                     if lease.status in ("completed", "deleted"):
                         break
                     await asyncio.sleep(1)
