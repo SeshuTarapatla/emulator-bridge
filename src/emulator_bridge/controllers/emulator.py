@@ -7,8 +7,6 @@ from adbutils import AdbDevice, AdbError, adb
 from psutil import NoSuchProcess, Process
 from pygetwindow import Win32Window, getWindowsWithTitle
 
-from emulator_bridge.utils import log
-
 
 class EmulatorNotFound(FileNotFoundError): ...
 

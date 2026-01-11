@@ -9,15 +9,17 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "adbutils>=2.12.0",
+    "cli-utils",
     "fastapi>=0.128.0",
     "psutil>=7.2.1",
     "pygetwindow>=0.0.9",
     "scalar-fastapi>=1.5.0",
+    "typer>=0.21.1",
     "uvicorn>=0.40.0",
 ]
 
 [project.scripts]
-emulator-bridge = "emulator_bridge.main:main"
+emulator-bridge = "emulator_bridge.controllers.cli:cli"
 
 [build-system]
 requires = ["uv_build>=0.9.18,<0.10.0"]
@@ -28,3 +30,6 @@ dev = [
     "icecream>=2.1.8",
     "ipykernel>=7.1.0",
 ]
+
+[tool.uv.sources]
+cli-utils = { git = "https://github.com/SeshuTarapatla/cli-utils" }
