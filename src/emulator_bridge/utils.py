@@ -5,7 +5,7 @@ __all__ = ["now", "log"]
 
 
 def now():
-    return datetime.now().replace(microsecond=0)
+    return datetime.now().astimezone().replace(microsecond=0)
 
 
 log = getLogger("uvicorn.error.app")
