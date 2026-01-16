@@ -9,7 +9,7 @@ from emulator_bridge.controllers.lease import (
     Lease,
     lease_queue,
 )
-from emulator_bridge.models.emulator import DEV_MODE_DURATIION, LeaseInfo, LeaseRequest
+from emulator_bridge.models.emulator import DEV_MODE_DURATION, LeaseInfo, LeaseRequest
 from emulator_bridge.utils import now
 
 
@@ -71,7 +71,7 @@ async def request_lease(
 
 @router.post("/lease/dev", status_code=200, response_model=LeaseInfo)
 async def emulator_in_dev_mode():
-    lease = await lease_queue.new(int(DEV_MODE_DURATIION.total_seconds()))
+    lease = await lease_queue.new(int(DEV_MODE_DURATION.total_seconds()))
     return lease_info_response(lease)
 
 

@@ -6,7 +6,7 @@ from emulator_bridge.controllers.lease import LEASE_STATUS
 from emulator_bridge.utils import now
 
 DEFAULT_LEASE_DURATION = 180  # 3 minutes
-DEV_MODE_DURATIION = timedelta(days=1)  # 1 day
+DEV_MODE_DURATION = timedelta(days=1)  # 1 day
 
 
 class LeaseInfo(BaseModel):
@@ -22,8 +22,8 @@ class LeaseInfo(BaseModel):
             "example": {
                 "id": "lease-xxxxyyyy",
                 "position": 1,
-                "start_at": str(now()),
-                "end_at": str(now() + timedelta(seconds=180)),
+                "start_at": now().isoformat(),
+                "end_at": (now() + timedelta(seconds=180)).isoformat(),
                 "duration": "PT3M",
                 "status": "queued",
             }
