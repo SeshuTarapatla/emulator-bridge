@@ -17,7 +17,7 @@ class Emulator:
     @staticmethod
     def start() -> int:
         return Popen(
-            f"{Emulator.exe} -avd emulator -no-boot-anim -no-audio -gpu host -accel on -memory 4096 -cores 4 -netfast".split(),
+            f"{Emulator.exe} -avd emulator -no-snapshot -no-boot-anim -no-audio -gpu host -accel on -memory 4096 -cores 4 -netfast".split(),
             stdout=DEVNULL,
             stderr=DEVNULL,
         ).pid
