@@ -34,6 +34,14 @@ async def stream_lease_status(request: Request, lease: Lease):
         await asyncio.sleep(1)
 
 
+async def stream_emulator_status(request: Request):
+    while True:
+        yield f"status: {'free' if Emulator.status() == (None, None) else 'busy'}\n\n"
+        if await request.is_disconnected():
+            return
+        await asyncio.sleep(1)
+
+
 router = APIRouter(tags=["Emulator"])
 
 
@@ -73,6 +81,15 @@ async def request_lease(
 async def emulator_in_dev_mode():
     lease = await lease_queue.new(int(DEV_MODE_DURATION.total_seconds()))
     return lease_info_response(lease)
+
+
+@router.get("/status", status_code=2000)
+async def emulator_status(request: Request):
+    return StreamingResponse(
+        stream_emulator_status(request),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
+    )
 
 
 @router.get("/{id}", status_code=200, response_model=LeaseInfo)
