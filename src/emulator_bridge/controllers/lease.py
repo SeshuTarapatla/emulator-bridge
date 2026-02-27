@@ -11,6 +11,7 @@ from emulator_bridge.utils import log, now
 __all__ = ["lease_queue"]
 
 EMULATOR_SWITCH: bool = True
+DEFAULT_EMULATOR_BOOT_BUFFER: timedelta = timedelta(seconds=10)
 LEASE_STATUS = Literal["queued", "active", "expired", "completed", "deleted"]
 
 
@@ -31,7 +32,8 @@ class Lease:
         self.end_at = self.start_at + self.duration
         self.status = "queued"
 
-    def start(self):
+    async def start(self, buffer: timedelta = DEFAULT_EMULATOR_BOOT_BUFFER):
+        await asyncio.sleep(buffer.seconds)
         self.start_at = now()
         self.end_at = self.start_at + self.duration
         self.status = "active"
@@ -117,7 +119,7 @@ async def lease_manager():
                         break
                     await asyncio.sleep(1)
                 Emulator.adjust_window()
-                lease.start()
+                await lease.start()
             if now() >= lease.end_at:
                 if lease.status != "completed":
                     lease.expire()
